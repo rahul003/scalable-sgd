@@ -10,6 +10,7 @@ class Data{
 	Eigen::SparseMatrix<double> V_;
 	Eigen::MatrixXd W_;
 	Eigen::MatrixXd H_;
+	Eigen::MatrixXd product_;
 
 	int num_users_;
 	int num_movies_;
@@ -19,7 +20,9 @@ public:
 	void loadNetflixMetadata(string, int&, map<string, int>& );
 	void readAsTriplets(string filename, vector<T>& triplets);
 	void initializeFactors(int);
-
+	void multiplyWH();
+	void computeSquaredLoss();
+	
 	int getNumUsers();
 	int getNumMovies();
 };

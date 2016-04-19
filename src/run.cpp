@@ -1,13 +1,12 @@
 #include <iostream>
-#include <../inc/data.h>
 #include <../inc/sgd.h>
 
 int main(){
 	// - MovieIDs range from 1 to 17770 sequentially.
 // - CustomerIDs range from 1 to 2649429, with gaps. There are 480189 users.
-	Data d("data/netflix/", 2649429+1, 17770+1); 
-	Sgd s(d,10);
-
+	Data* d = new Data("data/netflix/", 2649429+1, 17770+1); 
+	Sgd* s = new Sgd(d,10);
+	s->factorize();
 	// vector<T> triples;
 	// triples.push_back(T(0,1,3));
 	// triples.push_back(T(1,0,22));

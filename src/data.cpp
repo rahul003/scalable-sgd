@@ -40,12 +40,12 @@ Data::Data(string dir_path, int num_users, int num_movies){
 	  while ((ent = readdir (dir)) != NULL) {
 	    vector<string> filename_parts = split(ent->d_name,'.');
 	    if(filename_parts.size()==2 && filename_parts[1]=="txt"){
-			printf ("%s\n", ent->d_name);
+			// printf ("%s\n", ent->d_name);
 	    	readAsTriplets(dir_path+"training_set/"+string(ent->d_name), triplets);
 	    }
 
 	    //debug purposes
-	    if(triplets.size()>100000)
+	    if(triplets.size()>1000)
 	    	break;
 
 	  }
@@ -89,10 +89,27 @@ int Data::getNumMovies(){
 	return num_movies_;
 }
 
+void Data::multiplyWH(){
+	product_ = W_*H_;
+}
+
 void Data::initializeFactors(int num_latent){
 	//can parallelize
 	W_.setRandom(num_users_,num_latent);
 	H_.setRandom(num_latent, num_movies_);
+}
+
+void Data::computeSquaredLoss(){
+	multiplyWH();
+	// W_*H_;
+
+	for (int k = 0; k < V_.outerSize(); ++k){
+    	for (Eigen::SparseMatrix<double>::InnerIterator it(V_, k); it; ++it){
+        	cout << it.row() <<"\t";
+        	cout << it.col() << "\t";
+        	cout << it.value() << endl;
+	    }
+	}
 }
 
 // Data::Data(string file_path, int num_users, int num_movies){
