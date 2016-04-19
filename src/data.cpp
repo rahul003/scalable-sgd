@@ -50,8 +50,8 @@ Data::Data(string dir_path, int num_users, int num_movies){
 	  perror ("");
 	}
 
-	V_ = Eigen::SparseMatrix<double>(num_users, num_movies);
-    V_.setFromTriplets(triplets.begin(), triplets.end());
+	V_ = new Eigen::SparseMatrix<double>(num_users, num_movies);
+    V_->setFromTriplets(triplets.begin(), triplets.end());
     cout<<"loaded data"<<endl;
 }
 
@@ -99,6 +99,14 @@ void Data::multiplyWH(){
 	}
 }
 
+double Data::dotProduct(int Wi, int Hi){
+	double rval=0.0;
+	for(int k=0; k<num_latent_;k++){
+		rval+=(W_[Wi][k]*H_[k][Hi]);
+	}
+	return rval;
+}
+
 void Data::initializeFactors(int num_latent){
 	//can parallelize
 
@@ -133,19 +141,23 @@ void Data::initializeFactors(int num_latent){
     		product_[i][j] = 0.0;
     	}
     }
-
 }
 
-void Data::computeSquaredLoss(){
-	multiplyWH();
-	double loss = 0.0;
-	for (int k = 0; k < V_.outerSize(); ++k){
-    	for (Eigen::SparseMatrix<double>::InnerIterator it(V_, k); it; ++it){
-    		double l=((it.value())-(product_[it.row()][it.col()]));
-    		loss+=(l*l);
-	    }
-	}
-	VDUMP(loss);
+double Data::getW(int i,int k){
+	return W_[i][k];
+}
+
+
+double Data::getH(int k,int j){
+	return H_[k][j];
+}
+
+void Data::updateW(int i, int k, double dW){
+	W_[i][k]+=dW;
+}
+
+void Data::updateH(int k, int j, double dH){
+	H_[k][j]+=dH;
 }
 
 // Data::Data(string file_path, int num_users, int num_movies){
