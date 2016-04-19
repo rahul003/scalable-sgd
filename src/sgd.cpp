@@ -9,4 +9,5 @@ Sgd::Sgd(Data* d, int num_latent){
 
 void Sgd::factorize(){
 	d_->computeSquaredLoss();
+	
 }

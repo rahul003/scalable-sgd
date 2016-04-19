@@ -8,16 +8,17 @@ typedef Eigen::Triplet<double> T;
 
 class Data{
 	Eigen::SparseMatrix<double> V_;
-	Eigen::MatrixXd W_;
-	Eigen::MatrixXd H_;
-	Eigen::MatrixXd product_;
+	double** W_;
+	double** H_;
+	double** product_;
 
 	int num_users_;
 	int num_movies_;
+	int num_latent_;
 public:
 	Data();
 	Data(std::string file_path, int num_users, int num_movies);
-	void loadNetflixMetadata(string, int&, map<string, int>& );
+	void loadNetflixMetadata(string, int&);//, map<string, int>& );
 	void readAsTriplets(string filename, vector<T>& triplets);
 	void initializeFactors(int);
 	void multiplyWH();

@@ -2,5 +2,9 @@
 #include <sstream>
 #include <vector>
 
+#define VNAME(x) #x
+#define VDUMP(x) std::cout << #x << " " << x << std::endl
+
 std::vector<std::string>& split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> split(const std::string &s, char delim);
+double fRand(double fMin, double fMax);

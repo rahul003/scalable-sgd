@@ -5,7 +5,7 @@
 #include <dirent.h>
 using namespace std;
 
-void Data::loadNetflixMetadata(string path, int& sum, map<string, int>& rval){
+void Data::loadNetflixMetadata(string path, int& sum){
 	ifstream infile(path.c_str());
 	sum = 0;
 	if(infile.is_open()){
@@ -13,7 +13,7 @@ void Data::loadNetflixMetadata(string path, int& sum, map<string, int>& rval){
 		int size;
 		while(infile>>filename){
 			infile>>size;
-			rval[filename]= size;
+			// rval[filename]= size;
 			sum+=size;
 		}
 		infile.close();
@@ -23,17 +23,18 @@ void Data::loadNetflixMetadata(string path, int& sum, map<string, int>& rval){
 }
 
 Data::Data(){
-
+	num_latent_ = -1;
 }
 
 Data::Data(string dir_path, int num_users, int num_movies){
 	num_users_ = num_users;
 	num_movies_ = num_movies;
+	num_latent_ = -1;
 	DIR *dir;
 	struct dirent *ent;
 	int sum;
-	map<string, int> meta;
-	loadNetflixMetadata(dir_path+"metadata.txt", sum, meta);	
+	// map<string, int> meta;
+	loadNetflixMetadata(dir_path+"metadata.txt", sum);	
 	vector<T> triplets;
 	triplets.reserve(sum);
 	if ((dir = opendir ((dir_path+"training_set").c_str())) != NULL) {
@@ -43,11 +44,6 @@ Data::Data(string dir_path, int num_users, int num_movies){
 			// printf ("%s\n", ent->d_name);
 	    	readAsTriplets(dir_path+"training_set/"+string(ent->d_name), triplets);
 	    }
-
-	    //debug purposes
-	    if(triplets.size()>1000)
-	    	break;
-
 	  }
 	  closedir (dir);
 	} else {
@@ -90,26 +86,66 @@ int Data::getNumMovies(){
 }
 
 void Data::multiplyWH(){
-	product_ = W_*H_;
+	//parallelize
+	assert(num_latent_!=-1);
+	for(int i=0; i<num_users_; i++){
+		for(int j=0; j<num_movies_; j++){
+			double sum = 0.0;
+			for(int k=0; k<num_latent_;k++){
+				sum+=W_[i][k]*H_[k][j];
+			}
+			product_[i][j] = sum;
+		}
+	}
 }
 
 void Data::initializeFactors(int num_latent){
 	//can parallelize
-	W_.setRandom(num_users_,num_latent);
-	H_.setRandom(num_latent, num_movies_);
+
+	num_latent_ = num_latent;
+
+	W_ = new double*[num_users_];
+	for(int i = 0; i < num_users_; ++i)
+    	W_[i] = new double[num_latent];
+
+    H_ = new double*[num_latent];
+	for(int i = 0; i < num_latent; ++i)
+    	H_[i] = new double[num_movies_];
+    
+    product_ = new double*[num_users_];
+	for(int i = 0; i < num_users_; ++i)
+    	product_[i] = new double[num_movies_];
+
+    for(int i=0; i<num_users_;i++){
+    	for(int j=0; j<num_latent; j++){
+    		W_[i][j] = fRand(0.0,1.0);
+    	}
+    }
+
+    for(int i=0; i<num_latent;i++){
+    	for(int j=0; j<num_movies_; j++){
+    		H_[i][j] = fRand(0.0,1.0);
+    	}
+    }
+
+    for(int i=0; i<num_users_;i++){
+    	for(int j=0; j<num_movies_; j++){
+    		product_[i][j] = 0.0;
+    	}
+    }
+
 }
 
 void Data::computeSquaredLoss(){
 	multiplyWH();
-	// W_*H_;
-
+	double loss = 0.0;
 	for (int k = 0; k < V_.outerSize(); ++k){
     	for (Eigen::SparseMatrix<double>::InnerIterator it(V_, k); it; ++it){
-        	cout << it.row() <<"\t";
-        	cout << it.col() << "\t";
-        	cout << it.value() << endl;
+    		double l=((it.value())-(product_[it.row()][it.col()]));
+    		loss+=(l*l);
 	    }
 	}
+	VDUMP(loss);
 }
 
 // Data::Data(string file_path, int num_users, int num_movies){

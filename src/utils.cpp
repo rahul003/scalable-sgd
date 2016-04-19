@@ -1,4 +1,5 @@
 #include <../inc/utils.h>
+#include <cstdlib>
 
 std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
     std::stringstream ss(s);
@@ -16,3 +17,8 @@ std::vector<std::string> split(const std::string &s, char delim) {
     return elems;
 }
 
+double fRand(double fMin, double fMax)
+{
+    double f = (double)rand() / RAND_MAX;
+    return fMin + f * (fMax - fMin);
+}
