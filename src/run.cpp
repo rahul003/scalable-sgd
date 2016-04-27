@@ -4,9 +4,11 @@
 int main(){
 	// - MovieIDs range from 1 to 17770 sequentially.
 // - CustomerIDs range from 1 to 2649429, with gaps. There are 480189 users.
-	// Data* d = new Data("data/netflix/", 2649429+1, 17770+1); 
-	Data* d = new Data("data/trial/", 7+1, 3+1); 
-	Sgd* s = new Sgd(d,3);
+	srand(time(NULL));
+	// Data* d = new Data("netflix","data/trial/", 7+1, 3+1); 
+	Data* d = new Data("movielens","data/ml-10M100K/", 71567+1,65133+1); 
+	// Data* d = new Data("netflix","data/netflix/", 2649429+1, 17770+1); 
+	Sgd* s = new Sgd(d,10000);
 	s->factorize();
 	// vector<T> triples;
 	// triples.push_back(T(0,1,3));
