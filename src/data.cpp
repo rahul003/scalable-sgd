@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <dirent.h>
 using namespace std;
-
+using namespace Eigen;
 int Data::getNetflixNumRatings(string type){
 	return 100498277;
 	// ifstream infile(path.c_str());
@@ -103,7 +103,7 @@ void Data::readNetflixTriplets(string filename, vector<T>& triplets){
 		while(infile>>line){
 			vector<string> parts = split(line,',');
 			if(parts.size()==3){
-				triplets.push_back(T(atoi(parts[0].c_str()),movie_id,atoi(parts[1].c_str())));
+				triplets.push_back(T(atoi(parts[0].c_str()),movie_id,atoi(parts[1].c_str())/5));
 			} else{
 				cout<<"skipping line "<<line<<endl;
 			}
@@ -115,6 +115,19 @@ void Data::readNetflixTriplets(string filename, vector<T>& triplets){
 	
 }
 
+void Data::shuffleV(){
+	PermutationMatrix<Dynamic,Dynamic> perm(num_users_);
+	perm.setIdentity();
+	std::random_shuffle(perm.indices().data(), perm.indices().data()+perm.indices().size());
+	(perm.transpose() * (*V_) * perm);
+	
+	// Eigen::SparseMatrix<double>* shuffled = new Eigen::SparseMatrix<double>(num_users_, num_movies_);
+	
+	// SparseSymmetricPermutationProduct<Eigen::SparseMatrix<double, Dynamic, Dynamic>, Dynamic> x = V_->twistedBy(perm);
+	// x.evalTo(*shuffled);
+	// V_ = shuffled;
+	// V_ = perm * V_; // permute column among cols
+}
 int Data::getNumUsers(){
 	return num_users_;
 }
@@ -151,8 +164,10 @@ int Data::getVcols(){
 double Data::dotProduct(int Wi, int Hi){
 	double rval=0.0;
 	for(int k=0; k<num_latent_;k++){
-		rval+=(W_[Wi][k]*H_[k][Hi]);
+		rval+=((W_[Wi][k])*(H_[k][Hi]));
+		// cout<<W_[Wi][k]*H_[k][Hi]<<" ";
 	}
+	// cout<<endl;
 	return rval;
 }
 
@@ -201,11 +216,15 @@ double Data::getH(int k,int j){
 }
 
 void Data::updateW(int i, int k, double dW){
-	W_[i][k]-=dW;
+	// cout<<"W "<<i<<" "<<k<<" : "<<W_[i][k]<<endl;
+	W_[i][k]+=dW;
+	// cout<<"W "<<i<<" "<<k<<" : "<<W_[i][k]<<endl;
 }
 
 void Data::updateH(int k, int j, double dH){
-	H_[k][j]-=dH;
+	// cout<<"H "<<k<<" "<<j<<" : "<<H_[k][j]<<endl;
+	H_[k][j]+=dH;
+	// cout<<"H "<<k<<" "<<j<<" : "<<H_[k][j]<<endl;
 }
 
 void Data::printV(){

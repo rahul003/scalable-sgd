@@ -1,3 +1,6 @@
+#ifndef DATA_H_
+#define DATA_H_
+
 #include <iostream>
 #include <string>
 #include <../libs/eigen/Eigen/SparseCore>
@@ -26,6 +29,7 @@ public:
 	// void multiplyWH();
 	double dotProduct(int Wi, int Hi);
 	int getMovieLensNumRatings();
+	void shuffleV();
 	
 	double getW(int i,int k);
 	double getH(int k,int j);
@@ -41,3 +45,5 @@ public:
 	void printH();
 
 };
+
+#endif

@@ -1,6 +1,6 @@
 #include <../inc/utils.h>
 #include <cstdlib>
-
+#include <algorithm>
 std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
     std::stringstream ss(s);
     std::string item;
@@ -15,6 +15,27 @@ std::vector<std::string> split(const std::string &s, char delim) {
     std::vector<std::string> elems;
     split(s, delim, elems);
     return elems;
+}
+
+// [min,max)
+std::vector<int> range(int min, int max){
+    std::vector<int> rval;
+    for(int i=min; i<max; i++){
+        rval.push_back(i);
+    }
+    return rval;
+}
+
+std::vector<std::vector<int> > permutations(std::vector<int> list){
+    std::vector<std::vector<int> > rval;
+    do {
+        std::vector<int> v;
+        for(int i=0; i<list.size(); i++){
+            v.push_back(list[i]);
+        }
+        rval.push_back(v);
+    } while (next_permutation(list.begin(), list.end()));
+    return rval;
 }
 
 double fRand(double fMin, double fMax)
