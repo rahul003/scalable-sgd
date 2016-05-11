@@ -40,7 +40,7 @@ double Sgd::getTotalSquaredError(){
     		double e = getError(i,j, it.value());
     		totalError += e*e;
 	    }
-    	cout<<totalError<<endl;
+    	// cout<<totalError<<endl;
 	}
 	double timetaken =  omp_get_wtime() - start_time;
 	VDUMP(totalError);
@@ -71,7 +71,8 @@ void Sgd::loadRandomSample(int& i, int& j){
 void Sgd::factorize(int iterations){
 	double start_time = omp_get_wtime();
 	int N = d_->getN();
-	for(int iter=0; iter<iterations; iter++){		
+	// for(int iter=0; iter<iterations; iter++){		
+	for(int iter=0; iter<nonzeros_.size(); iter++){		
 		int i,j;
 		loadRandomSample(i,j);
 		double e = getError(i,j, d_->V_->coeffRef(i,j));
@@ -88,6 +89,9 @@ void Sgd::factorize(int iterations){
 			d_->updateW(i,k,dW);
 			d_->updateH(k,j,dH);
 		}
+
+		if(iter%10000==0)
+			cout<<iter<<endl;
 		// incrementSteps();
 		// updateStepsize();
 		// updateAlpha();

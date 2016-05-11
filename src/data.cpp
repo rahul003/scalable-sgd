@@ -7,20 +7,6 @@ using namespace std;
 using namespace Eigen;
 int Data::getNetflixNumRatings(string type){
 	return 100498277;
-	// ifstream infile(path.c_str());
-	// sum = 0;
-	// if(infile.is_open()){
-	// 	string filename;
-	// 	int size;
-	// 	while(infile>>filename){
-	// 		infile>>size;
-	// 		// rval[filename]= size;
-	// 		sum+=size;
-	// 	}
-	// 	infile.close();
-	// } else{
-	// 	perror("");
-	// }
 }
 
 int Data::getMovieLensNumRatings(){
@@ -30,7 +16,6 @@ int Data::getMovieLensNumRatings(){
 Data::Data(){
 	num_latent_ = -1;
 }
-
 
 Data::Data(string type, string dir_path, int num_users, int num_movies){
 	num_users_ = num_users;
@@ -43,14 +28,11 @@ Data::Data(string type, string dir_path, int num_users, int num_movies){
 		struct dirent *ent;
 		
 		int sum = getNetflixNumRatings(type);
-		// map<string, int> meta;
-		// loadNetflixMetadata(dir_path+"metadata.txt", sum);	
 		triplets.reserve(sum);
 		if ((dir = opendir ((dir_path+"training_set").c_str())) != NULL) {
 		  while ((ent = readdir (dir)) != NULL) {
 		    vector<string> filename_parts = split(ent->d_name,'.');
 		    if(filename_parts.size()==2 && filename_parts[1]=="txt"){
-				// printf ("%s\n", ent->d_name);
 		    	readNetflixTriplets(dir_path+"training_set/"+string(ent->d_name), triplets);
 		    }
 		  }
@@ -90,6 +72,20 @@ Data::Data(string type, string dir_path, int num_users, int num_movies){
     V_->setFromTriplets(triplets.begin(), triplets.end());
     N_ = V_->nonZeros();
     cout<<"loaded data"<<endl;
+}
+
+Data::Data(int numberOfElements){
+
+	vector<T> triplets;
+	// 71567+1,65133+1`
+	num_users_ = 71567+1;
+	num_movies_ = 65133+1;
+	for(int i= 0; i<numberOfElements; i++){
+		triplets.push_back(T(rand()%(71567),rand()%(65133),(rand()%5)+1));
+	}
+	V_ = new Eigen::SparseMatrix<double>(71567+1, 65133+1);
+    V_->setFromTriplets(triplets.begin(), triplets.end());
+    N_ = V_->nonZeros();
 }
 
 void Data::readNetflixTriplets(string filename, vector<T>& triplets){

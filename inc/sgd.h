@@ -20,24 +20,29 @@ class Sgd{
 	vector<pair<int, int> > nonzeros_;
 public:
 	Sgd(Data* d, int num_latent);
+
 	void setupBlocks(int );
+	
 	int getRowOffset(int block_row);
 	int getColOffset(int block_col);
 	void onBlock(int b_i, int b_j, int iters);
 	void loadNonZeroBlockwise();
-	void loadNonZeros();
+	
 	void shuffleData();
+	void loadNonZeros();
 	double getError(int row, int col, int value);
-	double getBlockSquaredError(pair<int, int> block);
 	double getTotalSquaredError();
+	double getBlockSquaredError(pair<int, int> block);
+
 	void loadRandomSample(int& i, int& j);
 	bool loadRandomSampleBlock(int& i, int& j, int i_start, int j_start);
+	
 	double getBlockwiseTotalSquaredError();
-	void blockWiseFactorizeLoops();
 	void blockWiseFactorizeTasks(int iters);
 
 	void factorize(int);
 	void blockWiseFactorize();
+	
 	double getStepsize();
 	void updateStepsize();
 	void incrementSteps();

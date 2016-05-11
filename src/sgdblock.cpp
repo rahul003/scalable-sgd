@@ -118,16 +118,13 @@ void Sgd::onBlock(int bindex_i, int bindex_j, int iters){
 	pair<int, int> bl (bindex_i,bindex_j);
 	int num_samples_block = nonzero_blockwise_[bl].size();
 	random_shuffle(nonzero_blockwise_[bl].begin(), nonzero_blockwise_[bl].end());
-	int i,j,N;
-	N = d_->getN();
-	// double eps = getStepsize();
+	int i,j;
 	for(int x=0; x<iters; x++){
 		for(int it = 0; it<num_samples_block; it++){
 			pair<int, int> sample = nonzero_blockwise_[bl][it];
 			i = sample.first;
 			j = sample.second;
-			// if(!loadRandomSampleBlock(i,j, bindex_i, bindex_j))
-				// continue;
+			
 			double e = getError(i,j, d_->V_->coeffRef(i,j));
 			for(int k=0; k<num_latent_;k++){
 				double Wik = d_->getW(i,k);
@@ -189,9 +186,8 @@ void Sgd::blockWiseFactorize(){
 
 
 void Sgd::blockWiseFactorizeTasks(int iters){
-	int Nb = (d_->getN())/num_blocks_;
 	double start_time = omp_get_wtime();
-	#pragma omp parallel num_threads(16)
+	#pragma omp parallel num_threads(30)
 	{
 		#pragma omp single
 		{

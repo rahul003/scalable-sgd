@@ -6,6 +6,34 @@
 \usepackage{subcaption}
 \usepackage{graphicx, wrapfig}
 \usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{pifont}
+\usepackage{color}
+\usepackage{geometry}
+\geometry{margin=1in}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=C++,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+\newtheorem{theorem}{Theorem}
 \title{SDS 394C Final project report\\{\Large Parallel stochastic gradient descent for matrix factorization}}
 \author{Rahul R Huilgol, rrh2226}
 
@@ -21,7 +49,7 @@ In this report, I present the results of my project on parallelizing Stochastic 
 \section{Motivation}
 Largely because of the internet, today has become the age where everyone is flooded with data. Companies have loads of data to analyze and users are inundated with choices making it hard for them to find what they are looking for. This has led to the areas of Information retrieval and information filtering become very important. Those companies which can efficiently mine their data to recommend the right information to users will be able to hold the interests of the user. Recommender systems have great applications in retail and entertainment sectors especially. Companies like Amazon and Netflix are trying to optimize their recommendation algorithms and utilize as much data as they can. This large amount of data calls for efficient ways of processing data, leading to parallel and distributed algorithms.
 
-One popular class of recommender systems are based on the idea of collaborative filtering. This approach to recommendation does not rely on information about the product, rather on the similarity between different users, and on the past ratings of the user. Consider the case of a company wanting to recommend movies to users based on their past reviews of movies. The basic idea on which these systems work on is the following. Suppose a user A has rated a movie P highly, and user B has also rated movie P highly. If user B has rated another movie Q highly, then its likely that user A will also like the movie Q because they showed similar interests based on their past ratings. To formalize this argument and domain, let there be a matrix which stores the ratings of all movies by all users. The dimensions of this matrix will obviously be (number of users x number of movies). Like Fig. \ref{fig:matrix} shows, typically only a few entries of the matrix are available, because clearly all users can't be expected to rate all existing movies.
+One popular class of recommender systems are based on the idea of latent factor models. This approach to recommendation does not rely on information about the product, or directly on similarity of users. This works on the idea that there are some latent variables that model the data. These systems try to learn these latent features from ratings they have and use the latent features to estimate ratings for other users and movies. To formalize this argument and domain, let there be a matrix which stores the ratings of all movies by all users. The dimensions of this matrix will obviously be (number of users x number of movies). Like Fig. \ref{fig:matrix} shows, typically only a few entries of the matrix are available, because clearly all users can't be expected to rate all existing movies.
 
 \begin{figure}[h]
    \centering
@@ -32,11 +60,217 @@ One popular class of recommender systems are based on the idea of collaborative 
 
 The task then reduces to a problem called Matrix Completion, i.e. to fill this matrix with estimated ratings. These estimated ratings can then be used for recommendations.
 \section{Approach}
-The intuition behind apporaching this problem is that there should be some latent(hidden) features that determine how a user rates an item. We can try to determine these latent features using the data we have, and then use the latent features to make predictions. This approach to Matrix completion can be formulated as factorizing the large matrix say $V$ into two smaller matrices $W$ and $H$. 
+One approach to Matrix completion can be formulated as factorizing the large matrix say $V$ into two smaller matrices $W$ and $H$. \\\\ Let $V$ be of size $|U|$ x $|M|$. Let the number of latent features or the rank of smaller matrices $W$ and $H$ be thought to be $K$, then $W$ has shape $|U|$ x $K$ and $H$ has shape $K$ x $|M|$, such that $W * H \approx V$. Let $T$ be the set of tuples whose ratings were known, where each tuple is given by $(u_i, m_j, r_ij)$. 
+\begin{figure}[h]
+   \centering
+    \includegraphics[width=0.75\linewidth]{mf.png}
+    \caption{Decomposing or factorizing a matrix into product of matrices}
+   \label{fig:factorization}
+\end{figure}
+
+Then the prediction of rating of $m_j$ by user $u_i$ $r_{ij}$ will be given as, $ \hat{r_{ij}} = W_i$ x $H_j$ = $\sum_{a=1}^{k} w_{ia}h_{aj} $. 
+When we factorize into matrices of lower size, we effectively lose information. This factorization process hence comes with an error. The loss is defined as the sum of squared errors over all originally known values. Since we never knew the cells with values missing, these cells are not counted in the error. \\
+Mathematically, error for a cell with known original value is given as \\ $e_{ij}^{2} = ( r_{ij} - \hat{r_{ij}} )^2  = (r_{ij} - \sum_{a=1}^{k} w_{ia}h_{aj})^2$. \\The total loss is thus, \\$ E = \sum_{(u_i, m_j, r_ij) \in T} e_{ij}^{2} = \sum_{(u_i, m_j, r_ij) \in T} (r_{ij} - \sum_{a=1}^{k} w_{ia}h_{aj})^2 $\\
+We seek to find $W$ and $H$ such that the total loss is minimized. \\
+$argmin_{W,H}(E(W, H, V)) $
+\section{Matrix factorization with Stochastic gradient descent}
+Stochastic gradient descent (SGD) is a method to determine the parameters that tries to optimize a given function of that parameters. This optimization is done by moving parameters slowly towards a local minimum taking steps proportional to the approximate gradient at a point. Gradient descent uses the whole gradient at a point, but this makes it slow. SGD approximates the whole gradient by scaling up the gradient at a point chosen at random. To apply SGD to matrix factorization let $\theta$ = ($W$,$H$). If $z=(u_i,m_j)$ is a point chosen at random, $L(\theta) = N*L_{z}(\theta) = N*L_{ij}(\theta)$ where $N = |T|$.\\\\
+Regularization terms are added to try to ensure that the parameters dont overfit to the training data (known samples). The resulting algorithm and update rules can be summarized in the following Algorithm \ref{sgd} \cite{blogpost}.
+\begin{algorithm}
+\caption{SGD for matrix factorization}
+\label{sgd}
+\begin{algorithmic}[1]
+\Require A training set T, initial values $W_0$ and $H_0$
+\While{not converged}
+\State Select a training point $(i,j)\in T$ uniformly at random
+\State $ W'_{ik} \leftarrow W_{ik} + \alpha (2e_{ij}H_{kj} - \beta W_{ik}) $
+\State $ H'_{kj} \leftarrow H_{kj} + \alpha (2e_{ij}W_{ik} - \beta H_{kj}) $
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+\section{Distributed SGD for matrix factorization}
+Classical sequential SGD can not be used for today\'s huge web scale matrices. However the structure of matrix factorization problem can be exploited to derive a scalable Distributed SGD(DSGD) algorithm. The idea is that we can divide the matrix into \textit{strata} and run SGD in parallel on each stratum. Here a stratum refers to a partition of the data. As long as we choose the strata in a particular fashion, it has been proven that the algorithm still converges to a local minimum \cite{dsgd}. This special property is interchangeability. In the context of matrix factorization, this principle reduces to the following:
+\begin{theorem}
+Two training points $z_1$ = $(i_1, j_1) \in T$ and $z_2 = (i_2, j_2) \in T$ are interchangeable with respect to any loss function L having summation form if they share neither row nor column, i.e., $i_1 \neq i_2$ and $j_1 \neq j_2$
+\end{theorem}
+This lets us swap the order of consecutive SGD steps that involve interchangeable training points without affecting the final outcome. We can divide the training matrix into a set $S$ = ${Z_1, ... Z_q}$ of $q$ strata so that each individual stratum $Z_s \subseteq Z $ can be processed in parallel or distributed fashion. This is done by ensuring that each stratum is \textit{d-monomial}. A stratum $Z_s$ is d-monomial if it can be partitioned into $d$ nonempty subsets $Z_s^1,Z_s^2, ...Z_s^d$ such that $i \neq i'$ and $j\neq j'$ whenever $(i,j) \in Z_s^{b_1}$ and $(i',j') \in Z_s^{b_2}$ with $b_1 \neq b_2$. A training matrix is $Z_s$ is d-monomial if it is constructed from a d-monomial stratum $Z_s$.  One way to stratify the training set in this fashion is to perform data independent blocking.  Given a training matrix $Z$ of size $m$x$n$, create $d$x$d$ blocks of size (m/d) x (n/d) each. The smaller factor matrices $W$ and $H$ are blocked accordingly as Fig.\ref{fig:blockingcolor} shows.
+\begin{figure}[h]
+   \centering
+    \includegraphics[width=0.5\linewidth]{blockingcolor.png}
+    \caption{Blocking of matrices}
+   \label{fig:blockingcolor}
+\end{figure}
+\\\\
+Then for a permutation $j_1, j_2, ... , j_d$ of $1, 2, ...,d$ we can define a stratum as $Z_s = Z^{1j_1}\bigcup Z^{2j_2}\bigcup...\bigcup Z^{dj_d}$ where the substratum $Z^{ij}$ denotes the set of training points that fall within block $Z^{ij}$. Hence a stratum corresponds to a set of blocks. Fig.\ref{fig:strata} shows set of possible strata when d=3. 
+\begin{figure}[h]
+   \centering
+    \includegraphics[width=\linewidth]{strata.png}
+    \caption{Strata for 3x3 blocking of training matrix Z }
+   \label{fig:strata}
+\end{figure}
+The algorithm can be then presented as Algorithm \ref{dsgd}.
+\begin{algorithm}
+\caption{DSGD for matrix factorization}
+\label{dsgd}
+\begin{algorithmic}[1]
+\Require A training set T, initial values $W_0$ and $H_0$, blocking factor $d$
+\State $W \leftarrow W_0 $ and $H \leftarrow H_0$
+\State Block $Z$ into $d$x$d$ blocks
+\State Block $W$ into $d$x$1$ blocks
+\State Block $H$ into $1$x$d$ blocks
+\While{not converged} \hspace{1in}//epoch
+\State Pick step size $\epsilon$
+\For {s $\in$ {1,...d}} \hspace{1in}//subepoch
+\State Pick d blocks $Z^{1j_1},..Z^{dj_d}$ to form a stratum
+\For {b $\in$ {1,...d}} \hspace{1in} //in parallel
+\State Run SGD on training points in $Z^{bj_b}$ (stepsize=$\epsilon$)
+\EndFor
+\EndFor
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+\section{Implementation}
+My implementation was done in C++ using the library Openmp. I used a dataset collected from the online movie recommender service MovieLens, called the MovieLens10M. It consists of 10000054 ratings of 10681 movies by 71567 users.  The ids of movies here range from 1 to 65133. Each rating is an integer from 1 to 5. This means that the whole training matrix would be of the dimensions 71567 x 65133. 
+\subsection{Data structures}
+The training matrix is really huge to store in memory, roughly 20GB when represented as a dense array of above dimensions. So I used the SparseMatrix class from the library Eigen to represent my training matrix in a sparse manner making it memory efficient. Note that the factor matrices we learn are dense and so are normal arrays of doubles.
+\begin{lstlisting}
+Eigen::SparseMatrix<double>* V_;
+V_ = new Eigen::SparseMatrix<double>(num_users, num_movies);
+W_ = new double*[num_users_];
+for(int i = 0; i < num_users_; ++i)
+  W_[i] = new double[num_latent];
+H_ = new double*[num_latent];
+for(int i = 0; i < num_latent; ++i)
+  H_[i] = new double[num_movies_];
+\end{lstlisting}
+W and H are initialized to random value between 0 and 1. 
+\subsection{Loading a random sample}
+The training matrix is represented as a sparse matrix in memory. But the algorithm requires loading a training sample in a uniformly random manner. So I iterate through the sparse matrix and load the locations of all non zero cells into a vector. I constructed one such vector for each block and stored this in a std::map. This map has key a pair of integers indexing the block. 
+\begin{lstlisting}
+	map<pair<int, int> , vector<pair<int, int> > > nonzero_blockwise_;
+\end{lstlisting}
+\subsection{Computing strata}
+Suppose the number of blocks is $ N$ (has to be a perfect square). The size of blocking is d = $\sqrt{N}$. For example, if N=100, size of blocking is 10 because its a 10x10 blocking of data. Build a vector from 0 to d-1. Generate all permutations of numbers in this vector. These permutations are computed and stored once. Each of these permutations can be used to compute a strata which runs in parallel as described at the end of Section 4. 
+\subsection{Classes}
+I have two classes, one called Data which contains the above three matrices above and another called Sgd. Sgd takes as arguments an object of the data class, and the number of latent factors to learn. 
+\subsection{BlockwiseFactorize}
+I used tasks to parallelize the work of running Sgd on each block. The relevant portions of the code are as follows:
+\begin{lstlisting}
+void Sgd::blockWiseFactorizeTasks(int iters){
+	double start_time = omp_get_wtime();
+	#pragma omp parallel num_threads(30)
+	{
+		#pragma omp single
+		{
+			for (int subepoch=0; subepoch<sqrt(num_blocks_); subepoch++)
+			{
+				//pick one stratum
+				for(int strat=0; strat<permuts_[subepoch-1].size(); strat++)
+				{
+					#pragma omp task
+					{
+						onBlock(strat,permuts_[subepoch][strat], iters);
+					}
+				}
+				#pragma omp taskwait
+			}
+			// updateAlpha();
+		}		
+	}
+	double time1 = omp_get_wtime() - start_time;
+	cout<<"Time taken to run <<iters<<"iterations is "<<time1<<"s"<<endl;
+}
+\end{lstlisting}
+Each task calls onBlock function with parameters that identify a particular block of the matrix and the number of iterations to run.
+We can see that tasks wait till all tasks for one strata are finished. This is important to ensure convergence.
+\begin{lstlisting}
+void Sgd::onBlock(int bindex_i, int bindex_j, int iters){
+	pair<int, int> bl (bindex_i,bindex_j);
+	int num_samples_block = nonzero_blockwise_[bl].size();
+	random_shuffle(nonzero_blockwise_[bl].begin(), nonzero_blockwise_[bl].end());
+	int i,j;
+	for(int x=0; x<iters; x++){
+		for(int it = 0; it<num_samples_block; it++){
+			pair<int, int> sample = nonzero_blockwise_[bl][it];
+			i = sample.first;
+			j = sample.second;
+			double e = getError(i,j, d_->V_->coeffRef(i,j));
+			for(int k=0; k<num_latent_;k++){
+				double Wik = d_->getW(i,k);
+				double Hkj = d_->getH(k,j);
+
+				double dW = ((2*alpha_*e*Hkj) - (beta_*Wik));
+				double dH = ((2*alpha_*e*Wik) - (beta_*Hkj));
+
+				d_->updateW(i,k,dW);
+				d_->updateH(k,j,dH);
+			}
+		}
+	}
+}
+\end{lstlisting}
+\subsection{Computing total error}
+This is also another problem that can be easily parallelized. Here is how I did it. 
+\begin{lstlisting}
+  double Sgd::getBlockwiseTotalSquaredError(){
+	double totalError=0;
+	double start_time = omp_get_wtime();
+	
+	int size = sqrt(num_blocks_);
+	#pragma omp parallel num_threads(11) 
+	{
+		#pragma omp for collapse(2) reduction(+:totalError)
+		for(int i=0; i<size; i++){
+			for(int j=0; j<size; j++){
+					pair<int, int> block (i,j);
+    				double c = getBlockSquaredError(block);
+    				totalError += c;
+			}
+		}
+	}
+	double timetaken = omp_get_wtime() - start_time;
+	cout<<"Totalerror "<<totalError<<" , time taken to compute "<<timetaken<<endl;
+	return totalError;
+}
+
+double Sgd::getBlockSquaredError(pair<int, int> block){
+    double te =0;
+    double e;
+    vector<pair<int, int> > nz = nonzero_blockwise_[block];
+    int size = nz.size();
+	if(size==0)
+		return te;
+	
+    for(int temp=0 ;temp<size; temp++){
+    	int i = nonzero_blockwise_[block][temp].first;
+    	int j = nonzero_blockwise_[block][temp].second;
+    	 e = (d_->V_->coeffRef(i,j)-(d_->dotProduct(i,j)));
+    	 te += e*e;
+    }	 
+    return te;
+}
+
+\end{lstlisting}
+\section{Results}
+I couldnt run the whole algorithm till convergence because it would take lot of time and because getting long allocations wasnt really possible. So I have collected results for shorter runs, a few iterations at a time. Here one iteration refers to one pass over the whole non zero training ratings present in the data. Since all runs were performed with same seed, and initialized similarly, error initially is the same for serial and parallel. The initial total error was in the order of e+30
+\subsection{Time taken serially}
+Average time taken for 1 pass over data serially is \textbf{8420.91}s.
+Average time taken to compute error serially is \textbf{2043.96s}.
+Error after 1 pass is 3.02935e+08.
+\subsection{Time taken in parallel}
+Below results are for the blocking of data matrix which resulted in 100 blocks, i.e. d=10. 
+\subsubsection{Error computation with 10}
+Average time to compute error is \textbf{274.12s}.
+\subsubsection{DSGD}
+Average time for 1 pass over data with 11 threads is 6469.75s.
+Error after 1 pass is 1.14326e+11s.
 \section{Conclusion}
 \begin{thebibliography}{9}
   \bibitem{dsgd}
-  
-
+  Gemulla, Rainer, et al. "Large-scale matrix factorization with distributed stochastic gradient descent." Proceedings of the 17th ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2011.
+  \bibitem{blogpost}
+  Albert Au Yeung, "Matrix Factorization: A Simple Tutorial and Implementation in Python" Quuxlabs Blogpost
+  \bibitem{movielens}
+  Harper, F. Maxwell, and Joseph A. Konstan. "The MovieLens Datasets: History and Context." ACM Transactions on Interactive Intelligent Systems (TiiS) 5.4 (2015): 19
 \end{thebibliography}
 \end{document}
