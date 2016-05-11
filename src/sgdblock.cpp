@@ -44,6 +44,7 @@ void Sgd::loadNonZeroBlockwise(){
 	    }
 	}
 
+	cout<<"Number of nonzero entries in each block"<<endl;
 	for(map<pair<int, int> , vector<pair<int, int> > >::iterator it = nonzero_blockwise_.begin(); it != nonzero_blockwise_.end(); it++) {
     	cout<<it->second.size()<<" ";
     	// iterator->first = key
@@ -130,6 +131,7 @@ void Sgd::onBlock(int bindex_i, int bindex_j, int iters){
 				double Wik = d_->getW(i,k);
 				double Hkj = d_->getH(k,j);
 
+				//different variant of SGD
 				// double dW = (2*eps*e*Hkj);
 				// double dH = (2*eps*e*Wik);
 				double dW = ((2*alpha_*e*Hkj) - (beta_*Wik));

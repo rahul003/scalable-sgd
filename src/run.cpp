@@ -29,7 +29,7 @@ int main(int argc, char* argv[]){
 			s->getBlockwiseTotalSquaredError();
 
 		} else if(argc==3){
-			cout<<"Running original"<<endl;
+			cout<<"Running serially"<<endl;
 			cout<<"Computing error"<<endl;
 			s->getTotalSquaredError();
 			if(atoi(argv[2])!=0){
@@ -38,32 +38,12 @@ int main(int argc, char* argv[]){
 				s->getTotalSquaredError();
 			}
 		}
-	} else if (argc==2) {
-		Data* d = new Data(10000054); 
-		Sgd* s = new Sgd(d,atoi(argv[1]));
-		s->setupBlocks(100);
-		cout<<"Set up blocks for random data case"<<endl;
-		cout<<"Computing error"<<endl;
-		s->getBlockwiseTotalSquaredError();
-		s->blockWiseFactorizeTasks(1);
-		cout<<"Computing error"<<endl;
-		s->getBlockwiseTotalSquaredError();
-
-		s->blockWiseFactorizeTasks(1);
-		cout<<"Computing error"<<endl;
-		s->getBlockwiseTotalSquaredError();
-
-		s->blockWiseFactorizeTasks(1);
-		cout<<"Computing error"<<endl;
-		s->getBlockwiseTotalSquaredError();
-
-		s->blockWiseFactorizeTasks(1);
-		cout<<"Computing error"<<endl;
-		s->getBlockwiseTotalSquaredError();
-
-	} else{
-		cout<<"need args for num_latentdim num_blocks num_iters_block"<<endl;
-		cout<<"need args for num_latentdim num_iters_normal"<<endl;
+	// } else if (argc==2) {
+	} 
+	else{
+		cout<<"Error. Give arguments like "<<endl;
+		cout<<"  num_latentdim num_blocks num_iters_block"<<endl;
+		cout<<"or num_latentdim num_iters_normal"<<endl;
 	}
 	return 0;
 }

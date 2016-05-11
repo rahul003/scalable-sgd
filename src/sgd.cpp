@@ -26,7 +26,6 @@ Sgd::Sgd(Data* d, int num_latent){
 
 double Sgd::getError(int row, int col, int value){
     double e = (value-(d_->dotProduct(row,col)));
-    // cout<<value<<" "<<d_->dotProduct(row,col)<<" " <<e<<endl;
     return e;
 }
 
@@ -40,7 +39,6 @@ double Sgd::getTotalSquaredError(){
     		double e = getError(i,j, it.value());
     		totalError += e*e;
 	    }
-    	// cout<<totalError<<endl;
 	}
 	double timetaken =  omp_get_wtime() - start_time;
 	VDUMP(totalError);
@@ -49,7 +47,7 @@ double Sgd::getTotalSquaredError(){
 }
 
 void Sgd::updateStepsize(){
-	// stepsize_ = 1/pow(num_steps_,alpha_);
+	stepsize_ = 1/pow(num_steps_,alpha_);
 }
 
 double Sgd::getStepsize(){	
@@ -67,11 +65,10 @@ void Sgd::loadRandomSample(int& i, int& j){
 	j = cell.second;
 }
 
-// change one iteration to all samples in it
 void Sgd::factorize(int iterations){
 	double start_time = omp_get_wtime();
 	int N = d_->getN();
-	// for(int iter=0; iter<iterations; iter++){		
+	for(int iter=0; iter<iterations; iter++){		
 	for(int iter=0; iter<nonzeros_.size(); iter++){		
 		int i,j;
 		loadRandomSample(i,j);
@@ -95,6 +92,7 @@ void Sgd::factorize(int iterations){
 		// incrementSteps();
 		// updateStepsize();
 		// updateAlpha();
+	}
 	}
 	double time1 = omp_get_wtime() - start_time;
 	cout<<time1<<"s for "<<iterations<<" iters"<<endl;

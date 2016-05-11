@@ -65,7 +65,6 @@ Data::Data(string type, string dir_path, int num_users, int num_movies){
 			if(user>71567 || movie>65133)
 				cout<<user<<" "<<movie<<" "<<rating<<endl;
 			triplets.push_back(T(user,movie,rating));
-			// V_[user][movie] = rating;
 		}
 	}
 	V_ = new Eigen::SparseMatrix<double>(num_users, num_movies);
@@ -75,7 +74,7 @@ Data::Data(string type, string dir_path, int num_users, int num_movies){
 }
 
 Data::Data(int numberOfElements){
-
+	//only for testins
 	vector<T> triplets;
 	// 71567+1,65133+1`
 	num_users_ = 71567+1;
@@ -116,14 +115,8 @@ void Data::shuffleV(){
 	perm.setIdentity();
 	std::random_shuffle(perm.indices().data(), perm.indices().data()+perm.indices().size());
 	(perm.transpose() * (*V_) * perm);
-	
-	// Eigen::SparseMatrix<double>* shuffled = new Eigen::SparseMatrix<double>(num_users_, num_movies_);
-	
-	// SparseSymmetricPermutationProduct<Eigen::SparseMatrix<double, Dynamic, Dynamic>, Dynamic> x = V_->twistedBy(perm);
-	// x.evalTo(*shuffled);
-	// V_ = shuffled;
-	// V_ = perm * V_; // permute column among cols
 }
+
 int Data::getNumUsers(){
 	return num_users_;
 }
@@ -143,27 +136,11 @@ int Data::getVcols(){
 	return V_->cols();
 }
 
-// void Data::multiplyWH(){
-// 	//parallelize
-// 	assert(num_latent_!=-1);
-// 	for(int i=0; i<num_users_; i++){
-// 		for(int j=0; j<num_movies_; j++){
-// 			double sum = 0.0;
-// 			for(int k=0; k<num_latent_;k++){
-// 				sum+=W_[i][k]*H_[k][j];
-// 			}
-// 			product_[i][j] = sum;
-// 		}
-// 	}
-// }
-
 double Data::dotProduct(int Wi, int Hi){
 	double rval=0.0;
 	for(int k=0; k<num_latent_;k++){
 		rval+=((W_[Wi][k])*(H_[k][Hi]));
-		// cout<<W_[Wi][k]*H_[k][Hi]<<" ";
 	}
-	// cout<<endl;
 	return rval;
 }
 
@@ -180,10 +157,6 @@ void Data::initializeFactors(int num_latent){
 	for(int i = 0; i < num_latent; ++i)
     	H_[i] = new double[num_movies_];
     
- //    product_ = new double*[num_users_];
-	// for(int i = 0; i < num_users_; ++i)
- //    	product_[i] = new double[num_movies_];
-
     for(int i=0; i<num_users_;i++){
     	for(int j=0; j<num_latent; j++){
     		W_[i][j] = fRand(0.0,1.0);
@@ -196,11 +169,6 @@ void Data::initializeFactors(int num_latent){
     	}
     }
 
-    // for(int i=0; i<num_users_;i++){
-    // 	for(int j=0; j<num_movies_; j++){
-    // 		product_[i][j] = 0.0;
-    // 	}
-    // }
 }
 
 double Data::getW(int i,int k){
@@ -212,15 +180,11 @@ double Data::getH(int k,int j){
 }
 
 void Data::updateW(int i, int k, double dW){
-	// cout<<"W "<<i<<" "<<k<<" : "<<W_[i][k]<<endl;
 	W_[i][k]+=dW;
-	// cout<<"W "<<i<<" "<<k<<" : "<<W_[i][k]<<endl;
 }
 
 void Data::updateH(int k, int j, double dH){
-	// cout<<"H "<<k<<" "<<j<<" : "<<H_[k][j]<<endl;
 	H_[k][j]+=dH;
-	// cout<<"H "<<k<<" "<<j<<" : "<<H_[k][j]<<endl;
 }
 
 void Data::printV(){
@@ -252,6 +216,7 @@ void Data::printH(){
     }
     	cout<<endl;
 }
+// For different format of input
 // Data::Data(string file_path, int num_users, int num_movies){
 // 	num_users_ = num_users;
 // 	num_movies_ = num_movies;
